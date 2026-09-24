@@ -59,9 +59,46 @@ SSID, or a mesh node) press **`s`** to scan and switch networks. Saved
 connections switch immediately; new networks prompt for a password if
 they're secured.
 
+### Wired baseline (no WiFi)
+
+Press **`w`** to run the same speed test over a plain Ethernet connection —
+useful for figuring out whether a slow result is actually a WiFi problem at
+all. Plug a laptop straight into your modem or router with an Ethernet
+cable (Ethernet takes priority over WiFi automatically on most systems —
+you don't need to disable WiFi first, just plug in), then press `w` and
+label it (e.g. "Wired - straight to modem", "Wired - router LAN port").
+It skips the WiFi signal lookup entirely and tags the row `(wired)` in the
+table, so you can compare it directly against your WiFi numbers:
+
+- Slow even wired straight into the modem → the problem is your modem, ISP
+  plan/provisioning, or the coax/fiber line — not WiFi at all.
+- Fast wired into the router but slow over WiFi close-range → the router's
+  WiFi radio, CPU, or channel is the bottleneck.
+
+### Testing a set of networks at one spot
+
+Press **`b`** to compare several networks without moving — useful for
+"is the 5GHz band actually faster here?" or "which mesh node am I really
+on in the kitchen?". It:
+
+1. Prompts once for a location label.
+2. Shows a checklist of your saved WiFi connections (all checked by
+   default — untick any you don't want) — press Space to toggle, then
+   "Test selected".
+3. Connects to each selected network in turn, waits a couple of seconds
+   for the connection to settle, runs a full speed test, and saves a
+   measurement — all under the same location label so they're easy to
+   compare in the table afterwards.
+4. Reconnects you to whatever network you started on when it's done.
+
+A network that fails to connect is skipped (with a notification) rather
+than aborting the whole batch.
+
 | Key | Action |
 |-----|--------|
-| `n` | Start a new measurement (prompts for a label) |
+| `n` | Start a new measurement on the current network (prompts for a label) |
+| `w` | Wired speed test — no WiFi, baselines the modem/router/ISP |
+| `b` | Test a set of saved networks back-to-back at this location |
 | `s` | Scan for and switch to a different WiFi network |
 | `r` | Refresh the current network/signal display |
 | `e` | Export all measurements to a timestamped CSV file |
@@ -94,7 +131,7 @@ src/wifi_mapper/
   storage.py            SQLite persistence + CSV export
   wifi.py                nmcli/iw wrappers: status, scanning, connecting
   speedtest_runner.py    speedtest-cli wrapper
-  screens.py              Textual modal screens (label, confirm, network picker, password)
+  screens.py              Textual modal screens (label, confirm, network picker/set picker, password)
   app.py                   main Textual App
   __init__.py               CLI entry point (argparse)
 ```

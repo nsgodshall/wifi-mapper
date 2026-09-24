@@ -42,6 +42,7 @@ class WifiMapperApp(App):
 
     BINDINGS = [
         ("n", "new_measurement", "New measurement"),
+        ("w", "wired_test", "Wired test (no WiFi)"),
         ("b", "batch_test", "Test network set"),
         ("s", "switch_network", "Switch network"),
         ("r", "refresh_status", "Refresh status"),
@@ -161,6 +162,50 @@ class WifiMapperApp(App):
         ping_text = f"{result.ping_ms:.0f} ms ping" if result.ping_ms is not None else "ping n/a"
         self.notify(
             f"Saved '{label}': {result.download_mbps:.1f}/{result.upload_mbps:.1f} Mbps, {ping_text}"
+        )
+
+    @work(exclusive=True)
+    async def action_wired_test(self) -> None:
+        """Run a speed test with no WiFi involved, to baseline the modem/router/ISP."""
+        if self._busy:
+            self.notify("Already busy, please wait.", severity="warning")
+            return
+        label = await self.push_screen_wait(
+            LabelScreen(None, heading="Wired speed test (no WiFi) — label this connection point:")
+        )
+        if label is None:
+            return
+
+        self._set_busy("Running wired speed test...")
+
+        def progress(stage: str) -> None:
+            self.call_from_thread(self._set_busy, stage)
+
+        try:
+            result = await asyncio.to_thread(run_speedtest, progress)
+        except Exception as exc:
+            self._clear_busy()
+            self.notify(f"Speed test failed: {exc}", severity="error")
+            return
+
+        measurement = Measurement(
+            id=None,
+            timestamp=datetime.now().isoformat(timespec="seconds"),
+            label=label,
+            ssid="(wired)",
+            signal_percent=None,
+            signal_dbm=None,
+            download_mbps=result.download_mbps,
+            upload_mbps=result.upload_mbps,
+            ping_ms=result.ping_ms,
+            server_name=result.server_name,
+        )
+        self.storage.add(measurement)
+        self._clear_busy()
+        self._reload_table()
+        ping_text = f"{result.ping_ms:.0f} ms ping" if result.ping_ms is not None else "ping n/a"
+        self.notify(
+            f"Saved wired '{label}': {result.download_mbps:.1f}/{result.upload_mbps:.1f} Mbps, {ping_text}"
         )
 
     @work(exclusive=True)
